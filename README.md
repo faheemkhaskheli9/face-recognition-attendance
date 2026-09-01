@@ -4,7 +4,7 @@
 > This is an original, from-scratch build. It is not affiliated with, and does not
 > contain any code, prompts, data, or business logic from, any employer or client.
 
-![status](https://img.shields.io/badge/status-planned-lightgrey)
+![status](https://img.shields.io/badge/status-in%20progress-yellow)
 ![python](https://img.shields.io/badge/python-3.10%2B-blue)
 ![license](https://img.shields.io/badge/license-MIT-green)
 
@@ -84,8 +84,16 @@ No proprietary, employer-owned, or client-identifiable data is used in this proj
 Document the commands used to run training, ingestion, or the main pipeline, e.g.:
 
 ```bash
-python -m src.main --config configs/default.yaml
+# Phase 1: enroll a person from one or more face images (.npy or image files)
+python -m src.main enroll --person-id alice --name "Alice Doe" \
+    --images samples/alice_1.npy samples/alice_2.npy
+python -m src.main list
+python -m src.main remove --person-id alice
 ```
+
+The default `hash` backend is a deterministic, dependency-free stand-in used for
+offline runs and tests. Install the `recognition` extra and pass `--backend dlib`
+to use real `face_recognition` encodings.
 
 ## 10. Evaluation
 

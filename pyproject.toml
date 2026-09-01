@@ -3,3 +3,26 @@ name = "face-recognition-attendance"
 version = "0.1.0"
 description = "Attendance System with Face Recognition"
 requires-python = ">=3.10"
+dependencies = [
+    "numpy>=1.24",
+    "pyyaml>=6.0",
+    "pillow>=10.0",
+]
+
+[project.optional-dependencies]
+# Real face-detection/encoding backend and camera capture. dlib needs a C++
+# toolchain, so it is kept out of the base install and CI.
+recognition = [
+    "face-recognition>=1.3",
+    "opencv-python>=4.8",
+]
+# Phase 3 dashboard.
+dashboard = ["streamlit>=1.30"]
+dev = ["pytest>=7.4"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.setuptools]
+packages = ["src"]

@@ -1,1 +1,6 @@
-# Fill in with the exact package versions used once implementation starts.
+# Phase 1 (enrollment pipeline) dependencies.
+# Real recognition backend (face-recognition, opencv) and the Streamlit
+# dashboard are declared as extras in pyproject.toml.
+numpy>=1.24
+pillow>=10.0
+pytest>=7.4

@@ -1,0 +1,41 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attendance: enroll (example)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.main",
+      "args": [
+        "enroll",
+        "--person-id",
+        "alice",
+        "--name",
+        "Alice Doe",
+        "--images",
+        "samples/alice_1.npy",
+        "samples/alice_2.npy"
+      ],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Attendance: list enrollments",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "src.main",
+      "args": ["list"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    },
+    {
+      "name": "Attendance: pytest",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "pytest",
+      "args": ["tests/", "-v"],
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}"
+    }
+  ]
+}
