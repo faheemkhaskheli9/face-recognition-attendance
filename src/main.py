@@ -6,6 +6,7 @@ Phase 1 provides the enrollment pipeline:
         --images samples/alice_1.npy samples/alice_2.npy
     python -m src.main list
     python -m src.main remove --person-id alice
+    python -m src.main recognize --image samples/frame.npy --threshold 0.6
 
 Images may be ``.npy`` arrays (offline / tests) or ordinary image files when
 Pillow is installed. The real dlib backend is selected with ``--backend dlib``.
@@ -19,6 +20,7 @@ from pathlib import Path
 from src.embeddings import load_embedder
 from src.enrollment import EnrollmentError, EnrollmentStore, enroll_person
 from src.images import ImageLoadError, load_image
+from src.matching import DEFAULT_THRESHOLD, NoEnrollmentsError, match_embedding
 
 DEFAULT_STORE = Path("data/enrollments.json")
 
@@ -65,6 +67,23 @@ def _cmd_remove(args: argparse.Namespace) -> int:
     return 1
 
 
+def _cmd_recognize(args: argparse.Namespace) -> int:
+    store = EnrollmentStore(args.store)
+    try:
+        embedder = load_embedder(args.backend)
+        image = load_image(args.image)
+        embedding = embedder.embed(image)
+        result = match_embedding(embedding, store, threshold=args.threshold)
+    except (ImageLoadError, ValueError, NoEnrollmentsError) as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 1
+    if result.person_id == "unknown":
+        print(f"unknown (best similarity {result.similarity:.3f} < threshold {args.threshold:.3f})")
+    else:
+        print(f"{result.person_id}\t{result.name}\tsimilarity={result.similarity:.3f}")
+    return 0
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="attendance", description=__doc__)
     parser.add_argument("--store", type=Path, default=DEFAULT_STORE, help="Enrollment registry path.")
@@ -84,6 +103,12 @@ def build_parser() -> argparse.ArgumentParser:
     p_remove = sub.add_parser("remove", help="Remove an enrolled person.")
     p_remove.add_argument("--person-id", required=True)
     p_remove.set_defaults(func=_cmd_remove)
+
+    p_recognize = sub.add_parser("recognize", help="Match one image against enrolled people.")
+    p_recognize.add_argument("--image", required=True, type=Path)
+    p_recognize.add_argument("--backend", default="hash", choices=["hash", "dlib"])
+    p_recognize.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
+    p_recognize.set_defaults(func=_cmd_recognize)
     return parser
 
 

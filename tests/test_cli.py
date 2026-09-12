@@ -35,6 +35,45 @@ def test_enroll_list_remove_roundtrip(tmp_path, capsys):
     assert "removed alice" in capsys.readouterr().out
 
 
+def test_recognize_matches_enrolled_person(tmp_path, capsys):
+    store = tmp_path / "enr.json"
+    img1 = tmp_path / "a1.npy"
+    _write_face(img1, 1)
+
+    rc = main(["--store", str(store), "enroll", "--person-id", "alice", "--images", str(img1)])
+    assert rc == 0
+    capsys.readouterr()
+
+    rc = main(["--store", str(store), "recognize", "--image", str(img1)])
+    assert rc == 0
+    assert "alice" in capsys.readouterr().out
+
+
+def test_recognize_reports_unknown_for_unenrolled_face(tmp_path, capsys):
+    store = tmp_path / "enr.json"
+    img1 = tmp_path / "a1.npy"
+    img2 = tmp_path / "a2.npy"
+    _write_face(img1, 1)
+    _write_face(img2, 2)
+
+    rc = main(["--store", str(store), "enroll", "--person-id", "alice", "--images", str(img1)])
+    assert rc == 0
+    capsys.readouterr()
+
+    rc = main(["--store", str(store), "recognize", "--image", str(img2)])
+    assert rc == 0
+    assert "unknown" in capsys.readouterr().out
+
+
+def test_recognize_against_empty_store_reports_error(tmp_path, capsys):
+    img1 = tmp_path / "a1.npy"
+    _write_face(img1, 1)
+
+    rc = main(["--store", str(tmp_path / "empty.json"), "recognize", "--image", str(img1)])
+    assert rc == 1
+    assert "error" in capsys.readouterr().err
+
+
 def test_enroll_missing_image_reports_error(tmp_path, capsys):
     rc = main(
         ["--store", str(tmp_path / "e.json"), "enroll", "--person-id", "x",
