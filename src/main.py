@@ -17,12 +17,14 @@ import argparse
 import sys
 from pathlib import Path
 
+from src.attendance import AttendanceStore, DEFAULT_DEDUP_WINDOW_SECONDS
 from src.embeddings import load_embedder
 from src.enrollment import EnrollmentError, EnrollmentStore, enroll_person
 from src.images import ImageLoadError, load_image
 from src.matching import DEFAULT_THRESHOLD, NoEnrollmentsError, match_embedding
 
 DEFAULT_STORE = Path("data/enrollments.json")
+DEFAULT_ATTENDANCE_DB = Path("data/attendance.db")
 
 
 def _cmd_enroll(args: argparse.Namespace) -> int:
@@ -79,8 +81,19 @@ def _cmd_recognize(args: argparse.Namespace) -> int:
         return 1
     if result.person_id == "unknown":
         print(f"unknown (best similarity {result.similarity:.3f} < threshold {args.threshold:.3f})")
-    else:
-        print(f"{result.person_id}\t{result.name}\tsimilarity={result.similarity:.3f}")
+        return 0
+
+    print(f"{result.person_id}\t{result.name}\tsimilarity={result.similarity:.3f}")
+    if not args.no_checkin:
+        with AttendanceStore(args.attendance_db, dedup_window_seconds=args.dedup_window_seconds) as attendance:
+            checkin = attendance.check_in(result.person_id)
+        if checkin.logged:
+            print(f"checked in {result.person_id} at {checkin.record.timestamp}")
+        else:
+            print(
+                f"duplicate check-in for {result.person_id} within "
+                f"{args.dedup_window_seconds:.0f}s window (last: {checkin.record.timestamp}) -- not logged again"
+            )
     return 0
 
 
@@ -108,6 +121,11 @@ def build_parser() -> argparse.ArgumentParser:
     p_recognize.add_argument("--image", required=True, type=Path)
     p_recognize.add_argument("--backend", default="hash", choices=["hash", "dlib"])
     p_recognize.add_argument("--threshold", type=float, default=DEFAULT_THRESHOLD)
+    p_recognize.add_argument("--attendance-db", type=Path, default=DEFAULT_ATTENDANCE_DB)
+    p_recognize.add_argument("--dedup-window-seconds", type=float, default=DEFAULT_DEDUP_WINDOW_SECONDS)
+    p_recognize.add_argument(
+        "--no-checkin", action="store_true", help="Recognize without logging a check-in."
+    )
     p_recognize.set_defaults(func=_cmd_recognize)
     return parser
 

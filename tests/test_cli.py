@@ -44,9 +44,50 @@ def test_recognize_matches_enrolled_person(tmp_path, capsys):
     assert rc == 0
     capsys.readouterr()
 
-    rc = main(["--store", str(store), "recognize", "--image", str(img1)])
+    rc = main(
+        ["--store", str(store), "recognize", "--image", str(img1),
+         "--attendance-db", str(tmp_path / "attendance.db")]
+    )
     assert rc == 0
     assert "alice" in capsys.readouterr().out
+
+
+def test_recognize_logs_a_checkin_by_default(tmp_path, capsys):
+    store = tmp_path / "enr.json"
+    img1 = tmp_path / "a1.npy"
+    _write_face(img1, 1)
+    db = tmp_path / "attendance.db"
+
+    main(["--store", str(store), "enroll", "--person-id", "alice", "--images", str(img1)])
+    capsys.readouterr()
+
+    rc = main(["--store", str(store), "recognize", "--image", str(img1), "--attendance-db", str(db)])
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "checked in alice" in out
+
+    from src.attendance import AttendanceStore
+
+    with AttendanceStore(db) as attendance:
+        history = attendance.history("alice")
+    assert len(history) == 1
+
+
+def test_recognize_with_no_checkin_does_not_log(tmp_path, capsys):
+    store = tmp_path / "enr.json"
+    img1 = tmp_path / "a1.npy"
+    _write_face(img1, 1)
+    db = tmp_path / "attendance.db"
+
+    main(["--store", str(store), "enroll", "--person-id", "alice", "--images", str(img1)])
+    capsys.readouterr()
+
+    rc = main(
+        ["--store", str(store), "recognize", "--image", str(img1),
+         "--attendance-db", str(db), "--no-checkin"]
+    )
+    assert rc == 0
+    assert not db.exists()
 
 
 def test_recognize_reports_unknown_for_unenrolled_face(tmp_path, capsys):
@@ -60,7 +101,10 @@ def test_recognize_reports_unknown_for_unenrolled_face(tmp_path, capsys):
     assert rc == 0
     capsys.readouterr()
 
-    rc = main(["--store", str(store), "recognize", "--image", str(img2)])
+    rc = main(
+        ["--store", str(store), "recognize", "--image", str(img2),
+         "--attendance-db", str(tmp_path / "attendance.db")]
+    )
     assert rc == 0
     assert "unknown" in capsys.readouterr().out
 
